@@ -14,12 +14,13 @@
 About The Project
 IT_SCAP organizes and streamlines importing, processing, segmenting, and analyzing IRM paired TIRF microscopy data. It helps users:
 
-Organize image data and metadata for multiple channels
-Perform background, shade, and bleaching corrections
-Define regions of interest (ROIs) for single cells
-Save processed data and ROI-based sub-images for further analysis
+Organize image data and metadata for multiple channels.
+Perform background, shade, and bleaching corrections.
+Define regions of interest (ROIs) for single cells.
+Save processed data and ROI-based sub-images for further analysis.
 This script is particularly useful as a pipiline to anyone performing single-cell time acquisitions with IRM imaging to segment cells and TIRF imaging for biological readouts.
-This script is currently optimized for use with Nikon microscopes (.nd2 image files). TIF image files are also acceptable file inputs (format as interleaved channels in time [i.e. ch1 time1, ch2 time1, ch1 time 2, ch2 time 2, etc])
+This script is currently optimized for use with Nikon microscopes (.nd2 image files). 
+TIF image files are also acceptable file inputs (format as interleaved channels in time. [i.e. ch1 time1, ch2 time1, ch1 time 2, ch2 time 2, etc])
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- BUILT WITH -->
 
