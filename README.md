@@ -78,6 +78,7 @@ For step-by-step details, see the comments within the script. And/or walk throug
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- ROADMAP -->
 ## Roadmap
+
 - [x] Automated background and shade corrections
 - [x] Automated ROI detection and manual refinement
 - [ ] Additional integration with alternative cell segmentation (Cellpose)
