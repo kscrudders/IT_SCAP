@@ -74,7 +74,7 @@ Adjust acquisition parameters:
 Select and edit ROIs, to isolate cells.
 * Remaining sections should be executed one by one, so you can inspect intermediate outputs and fix any issues (e.g., ROI adjustments, segmentation, tracking, etc).
 Export: The script can produce TIF files, and .mat files containing processed data and ROI-based extractions.
-For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
+* For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- ROADMAP -->
 ## Roadmap
