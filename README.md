@@ -24,8 +24,7 @@ TIF image files are also acceptable file inputs (format as interleaved channels 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- BUILT WITH -->
 
-Built With
-Matlab and Matlab Toolboxs:
+Built With Matlab and Matlab Toolboxs:
 * Matlab vR2024b
 * Computer Vision Toolbox
 * Curve Fitting Toolbox
@@ -41,7 +40,7 @@ External Supporting Matlab scripts:
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- GETTING STARTED -->
 
-Getting Started
+Getting Started </p>
 These instructions will guide you in preparing your local environment to run IT_SCAP.m.
 
 Prerequisites:
@@ -52,22 +51,20 @@ Prerequisites:
 * Gain calibration data for EMCCD camera
 
 Installation:
-Clone the repository:
-sh
-Copy
-Edit
-git clone https://github.com/kscrudders/IT_SCAP.git
+* Clone the repository:
+* sh
+* Copy
+* Edit
+* git clone https://github.com/kscrudders/IT_SCAP.git
 
 Add to MATLAB path:
-
-Open MATLAB.
-Go to Home > Set Path > Add with Subfolders and select the cloned folder.
-(Optional) Configure Cellpose (if used):
+* Open MATLAB.
+* Go to Home > Set Path > Add with Subfolders and select the cloned folder.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- USAGE EXAMPLES -->
 
 Usage:
-Open the script: In MATLAB, open IT_SCAP.m.
+* In MATLAB, open IT_SCAP.m.
 * Set file paths under Section_01 (Import Data). Adjust data_dir and save_data_in_this_folder to your local directories where raw image data and output will be stored.
 Adjust acquisition parameters:
 * Define channel imaging frequencies, and select gain, shade, and/or bleach correction setting, and so on in Sections_02–03.
@@ -77,6 +74,7 @@ Export: The script can produce TIF files, and .mat files containing processed da
 * For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- ROADMAP -->
+
 ## Roadmap
 
 - [x] Automated background and shade corrections
@@ -89,20 +87,23 @@ Export: The script can produce TIF files, and .mat files containing processed da
 See the [open issues](https://github.com/kscrudders/IT_SCAP/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- CONTRIBUTING -->
-Contributing
-Contributions make this script more robust and easier to use. If you have suggestions:
 
-Fork the Project
-Create your Feature Branch (git checkout -b feature/YourFeature)
-Commit your Changes (git commit -m 'Added an awesome feature')
-Push to the Branch (git push origin feature/YourFeature)
-Open a Pull Request
+Contributing: </p>
+Contributions make this script more robust and easier to use. If you have suggestions:
+* Fork the Project
+* Create your Feature Branch (git checkout -b feature/YourFeature)
+* Commit your Changes (git commit -m 'Added an awesome feature')
+* Push to the Branch (git push origin feature/YourFeature)
+* Open a Pull Request
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- LICENSE -->
-License
-This project is distributed under GNU Genereal Public License. See LICENSE.txt for details.
+
+License: </p>
+This project is distributed under GNU Genereal Public License. </p>
+See LICENSE.txt for details.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- CONTACT -->
-Contact
+Contact </p>
 Kevin Scrudders – kscrudders@gmail.com
 
 Project Link: https://github.com/kscrudders/IT_SCAP
