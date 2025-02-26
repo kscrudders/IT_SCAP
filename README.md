@@ -72,7 +72,7 @@ Open the script: In MATLAB, open IT_SCAP.m.
 Adjust acquisition parameters:
 * Define channel imaging frequencies, and select gain, shade, and/or bleach correction setting, and so on in Sections_02–03.
 Select and edit ROIs, to isolate cells.
-Remaining sections should be executed one by one, so you can inspect intermediate outputs and fix any issues (e.g., ROI adjustments, segmentation, tracking, etc).
+* Remaining sections should be executed one by one, so you can inspect intermediate outputs and fix any issues (e.g., ROI adjustments, segmentation, tracking, etc).
 Export: The script can produce TIF files, and .mat files containing processed data and ROI-based extractions.
 For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
 
