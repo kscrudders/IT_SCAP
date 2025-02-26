@@ -77,12 +77,15 @@ Export: The script can produce TIF files, and .mat files containing processed da
 For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- ROADMAP -->
-Roadmap
- Automated background and shade corrections
- Automated ROI detection and manual refinement
- Additional integration with advanced tracking software
- Automated IRM-based deformation tracking enhancements
-Check the issues to see future feature requests and known issues.
+## Roadmap
+- [x] Automated background and shade corrections
+- [x] Automated ROI detection and manual refinement
+- [ ] Additional integration with alternative cell segmentation (Cellpose)
+- [ ] Automated IRM-based deformation segmentation
+- [ ] Add Changelog as updates roll in
+
+
+See the [open issues](https://github.com/kscrudders/IT_SCAP/issues) for a full list of proposed features (and known issues).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- CONTRIBUTING -->
 Contributing
