@@ -31,7 +31,15 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
         i_start = 1;
     end
 
-    if need_2_mask_flag == 1
+    any_empty_flag = 0;
+    for i = 1:size(Base_label_ROIs,1)
+        if isempty (Base_label_ROIs{i,1})
+            any_empty_flag = 1;
+            i_start = 1;
+        end
+    end
+
+    if need_2_mask_flag == 1 | any_empty_flag == 1
         %---------------------------------------------------------%
         % Populate empty ROI masks or add more ROIs
         %---------------------------------------------------------%
