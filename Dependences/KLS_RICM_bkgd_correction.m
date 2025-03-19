@@ -1,4 +1,8 @@
 function [corrected, median_RICM, IRM_thres, IRM_LUT] = KLS_RICM_bkgd_correction(img,sig)
+    % Updated 20250319: KLS updated data reduction logic to focus on number of
+    % FOVs instead of number of frames. For single FOV acquaisiotns, the result
+    % is the same. For tiled acqusitions, the results are more effective.
+
     bkgd = img;
     rows = round(size(bkgd,1)/512);
     cols = round(size(bkgd,2)/512);
@@ -11,19 +15,20 @@ function [corrected, median_RICM, IRM_thres, IRM_LUT] = KLS_RICM_bkgd_correction
     if isempty(sig)
         sig = [5 5];
     end
+
     % You don't need to use all the data to generate
     % this data correction. This if/else reduces the 
-    % data need to be processed.
-    if time <3
-         % do nothing
+    % data need to be processed. Target is at least 50 fields of view
+    img_per_frame = rows * cols;
+    traget_num_FOV = 50;
+    if img_per_frame >= traget_num_FOV
+         time = 1;
+    elseif (img_per_frame * time) < traget_num_FOV
+        time = size(bkgd,3);
     else
-        time = round(time*.1);
-        if time < 3
-             time = 3;
-        end
-        if time > 50
-            time = 50;
-        end
+        min_frames = floor(traget_num_FOV / img_per_frame);
+
+        time = min_frames;
     end
 
     FOV = zeros(512,512,rows*cols*time);
