@@ -1,6 +1,9 @@
 function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_thres, IRM_LUT, Save_individual_acq_dir)
     % Update 2024101 KLS
     % --- Simplified if-then checks and updated mask editing interface
+    % Update 20250318 KLS
+    % --- Added logic to check if ROI_corners is bigger than the prior
+    % saved data
     
     %---------------------------------------------------------%
     % Manually Edit Masks -- Adjust ROIs with Paint Brush Interface
@@ -11,14 +14,29 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
     % Setup the mask for separating cell ROIs that are incorrectly connected
     %---------------------------------------------------------%
     cd(Save_individual_acq_dir)
+
     if exist('Base_label_ROIs.mat', 'file')
         load('Base_label_ROIs.mat', 'Base_label_ROIs')
+    end
+    
+    if exist('Base_label_ROIs','var')
+        if size(Base_label_ROIs,1) < size(roi_corners,1)
+            need_2_mask_flag = 1;
+            i_start = size(roi_corners,1)+1;
+        else
+            need_2_mask_flag = 0;
+        end
     else
+        need_2_mask_flag = 1;
+        i_start = 1;
+    end
+
+    if need_2_mask_flag == 1
         %---------------------------------------------------------%
         % Populate empty ROI masks or add more ROIs
         %---------------------------------------------------------%
         % Loop over manually selected ROIs
-        for i = 1:size(roi_corners,1)
+        for i = i_start:size(roi_corners,1)
             if ~isempty(Base_label_ROIs{i})
                 continue;
             end
