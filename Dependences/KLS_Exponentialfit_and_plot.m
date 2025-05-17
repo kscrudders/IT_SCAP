@@ -1,4 +1,4 @@
-function [fitFunction, gof, fit_str, lifetime_tau] = KLS_Exponentialfit_and_plot(imageStack, plot_flag)
+function [fitFunction, gof, fit_str, lifetime_tau] = KLS_Exponentialfit_and_plot(imageStack, plot_flag, x)
     % Corrects a 3D image stack for photobleaching using an exponential fit and plots the fit.
     %
     % Parameters:
@@ -6,14 +6,20 @@ function [fitFunction, gof, fit_str, lifetime_tau] = KLS_Exponentialfit_and_plot
     %
     % Returns:
     %   fitFunction - function handle for the exponential fit
-    
-    if nargin < 2
-        plot_flag = 0;
-    end
-    
+    %
+    % Update 20250516, KLS Allow x value as inputs as well as y
+
     % Get the size of the image stack
     [~, ~, numSlices] = size(imageStack);
-
+    if nargin < 2
+        plot_flag = 0;
+        % Fit the mean intensities to an exponential decay model with a constant term
+        x = (1:numSlices)'-1;
+    elseif nargin < 3
+        % Fit the mean intensities to an exponential decay model with a constant term
+        x = (1:numSlices)'-1;
+    end
+    
     % Calculate the mean intensity of each slice
     %meanIntensities = zeros(numSlices, 1);
     %for i = 1:numSlices
@@ -21,9 +27,11 @@ function [fitFunction, gof, fit_str, lifetime_tau] = KLS_Exponentialfit_and_plot
     %end
     
     y = squeeze(mean(imageStack,[1 2])); % Pull the mean value for the 
+    y = y(:); % force column vector
 
-    % Fit the mean intensities to an exponential decay model with a constant term
-    x = (1:numSlices)'-1;
+    x = x(:); % force column vector
+
+        assert(length(y) == length(x),'X must be the same length as y')
     
     ft = fittype('a*exp(-b*x) + c', 'independent', 'x', 'dependent', 'y' );
     opts = fitoptions( 'Method', 'NonlinearLeastSquares' );
