@@ -3,20 +3,64 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
     % --- Simplified if-then checks and updated mask editing interface
     % Update 20250318 KLS
     % --- Added logic to check if ROI_corners is bigger than the prior
-    % saved data
-    
-    %---------------------------------------------------------%
+    %     saved data
+    % Update 20250510 KLS
+    % --- Added an adaptive filter threshold to better segment areas where
+    %     scattered light elevates the intensity
+    % Update 20250514 KLS
+    % --- Options commented line that combines destrcutive interference
+    %     with constructive interference. Could automate that threshold
+    %     using the same workflow as IRM_thres
+    % Update 20250602 KLS
+    % --- Added logic to log manual mask annotations such that overlaping
+    %     ROIs receive the same annotations, thus saving time when the same
+    %     annotations are needed for different ROIs
+    %---------------------------------------------------------------------%
     % Manually Edit Masks -- Adjust ROIs with Paint Brush Interface
+    %---------------------------------------------------------------------%
+    if exist(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'file')
+        load(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'globalAnnotMask')
+    else
+        globalAnnotMask = true(size(Ch1_corr_IRM));
+    end    
+
+    %---------------------------------------------------------%
+    % Adaptive threshold setting
     %---------------------------------------------------------%
     Base_label_ROIs = cell([size(roi_corners,1), 1]);
+
+    gMed = median(Ch1_corr_IRM,'all'); % global median intensity
+
+    BW_adaptive_thres = nan(size(Ch1_corr_IRM)); % Preallocate memory
+
+    winsz     = [129 129];       % sliding window size (should be the 1.5-2.5x the size of a cell (10 µm == 64 px)
+    h = ones(winsz)/prod(winsz);       % 129×129 averaging kernel, example [1 1 1; 1 1 1; 1 1 1;] -> [1/9 1/9 1/9]    
+    for t = 1:size(Ch1_corr_IRM,3)
+        I = Ch1_corr_IRM(:,:,t);
+
+        %––– rolling average –––
+        Iavg = imfilter(I, h, 'symmetric');  % or conv2(I, h, 'same')
+        
+        %––– build a threshold map –––
+        %  increase above IRM_thres by (Iavg − gMed), but never drop below IRM_thres
+        thrMap = IRM_thres + max( (Iavg - gMed), 0);
+        
+        %––– 4) binarize –––
+        BW_adaptive_thres(:,:,t) = I < thrMap; % cells
+        
+        % 20250514 KLS
+        % If constructive interference is self contained under cells:
+        % Hard code threshold
+        %BW_adaptive_thres(:,:,t) = I < thrMap | I > 2700; % cells
+    end
     
     %---------------------------------------------------------%
     % Setup the mask for separating cell ROIs that are incorrectly connected
     %---------------------------------------------------------%
-    cd(Save_individual_acq_dir)
+    %cd(Save_individual_acq_dir) % edited to avoid moving the directory KLS 20250602
 
-    if exist('Base_label_ROIs.mat', 'file')
-        load('Base_label_ROIs.mat', 'Base_label_ROIs')
+    if exist(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'file') % edited to avoid moving the directory KLS 20250602
+        load(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'Base_label_ROIs') % edited to avoid moving the directory KLS 20250602
     end
     
     if exist('Base_label_ROIs','var')
@@ -54,9 +98,13 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             y = roi_corners{i,1}(:,2);
             img = Ch1_corr_IRM(min(y):max(y),min(x):max(x),:);
             
-            % Basic Segment of that cell ROI in time
-            Base_label = img < IRM_thres;
+            %---------------------------------------------------------%
+            % Adaptive Threshold
+            %---------------------------------------------------------%
+            % Adaptive Threshold Segment of that cell ROI in time
+            Base_label = BW_adaptive_thres(min(y):max(y),min(x):max(x),:);
             
+
             %---------------------------------------------------------%
             % Clean up that basic Segmentation
             %---------------------------------------------------------%
@@ -73,7 +121,6 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             small_obj_removed = small_obj_removed > 0;
             
             SE = strel('disk', 6); % Structuring Element for dilation
-            SE_2 = strel('disk', 6); % Structuring Element for erosion
             
             % Dilate Mask
             for t = 1:size(img,3)
@@ -91,7 +138,7 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             end
     
             Base_label = Base_label > 0;
-            
+            Base_label = Base_label .* globalAnnotMask(min(y):max(y),min(x):max(x),:); % apply prior annotations by remove label pixel values where globalAnnotMask == 0
             %---------------------------------------------------------%
             % Manually Edit Masks
             %---------------------------------------------------------%
@@ -108,7 +155,7 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                 
                 % Skip the current frame if there are no ROI present
                 if isempty(find(Base_label(:,:,ii) > 0, 1))
-                    if go_back_flag == 1
+                    if go_back_flag == 1 % move back in frames logic
                         ii = ii - 2;
                         if ii <= 0
                             ii = 0;
@@ -119,9 +166,9 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                     continue;
                 end
                 
-                go_back_flag = 0;
+                go_back_flag = 0; % reset flag
                 
-                % Repeat the mask correction if the mask has not changed
+                % Repeat the mask annotation if the mask has not changed
                 if ii > 1 && all(Base_label(:,:,ii-1) == Base_label(:,:,ii), 'all')
                     ii = ii + 1;
                     continue;
@@ -132,6 +179,8 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                     
                     % Plot the boundaries
                     L = Base_label(:,:,ii);
+                    L = L .* globalAnnotMask(min(y):max(y),min(x):max(x),ii); % apply prior annotations by remove label pixel values where globalAnnotMask == 0
+
                     [B,~] = bwboundaries(L > 0, 'noholes');
                     [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols);
                     
@@ -176,6 +225,7 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                                 mask_to_subtract = createMask(roi_subtract, ImgH);
                                 mask_to_subtract= imdilate(mask_to_subtract, SE_line_dilate);
         
+                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) & ~mask_to_subtract; % update global annotation mask
                                 new_boundaries = new_boundaries & ~mask_to_subtract;
                                 delete(roi_subtract);
                             end
@@ -234,6 +284,8 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                                 roi_add = drawfreehand('Color', 'g','LineWidth',5,'Closed',true,'DrawingArea','auto','Multiclick',false); % Draw area to add
                                 mask_to_add = createMask(roi_add, ImgH);
                                 mask_to_add= imdilate(mask_to_add, SE_line_dilate);
+
+                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) | mask_to_add; % update global annotation mask
                                 new_boundaries = new_boundaries | mask_to_add;
                                 delete(roi_add);
                             elseif continueDrawing == 'k'
@@ -242,6 +294,7 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                                 mask_to_subtract = createMask(roi_subtract, ImgH);
                                 mask_to_subtract= imdilate(mask_to_subtract, SE_line_dilate);
         
+                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) & ~mask_to_subtract; % update global annotation mask
                                 new_boundaries = new_boundaries & ~mask_to_subtract;
                                 delete(roi_subtract);
                             end
@@ -298,7 +351,9 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             Base_label_ROIs{i,1} = KLS_Label_fullStackTracking(Base_label);      
     
             % Save the updated masks
-            save('Base_label_ROIs.mat', 'Base_label_ROIs', '-v7.3')
+            save(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'Base_label_ROIs', '-v7.3')
+            % Save the global mask annotation
+            save(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'globalAnnotMask', '-v7.3')
         end
     end
    
