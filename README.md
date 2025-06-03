@@ -99,7 +99,7 @@ Contributions make this script more robust and easier to use. If you have sugges
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- LICENSE -->
 
 License: </p>
-This project is distributed under GNU Genereal Public License. </p>
+This project is distributed under GNU General Public License. </p>
 See LICENSE.txt for details.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- CONTACT -->
