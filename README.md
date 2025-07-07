@@ -38,6 +38,12 @@ External Supporting Matlab scripts:
 * ND2info - https://www.mathworks.com/matlabcentral/fileexchange/73271-nd2-reader
 * plotSpread - https://www.mathworks.com/matlabcentral/fileexchange/37105-plot-spread-points-beeswarm-plot
 
+Incompatabilities:
+* DipImage Toolbox functions:
+    - drawpolygon
+    - gabor
+    - watershed
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- GETTING STARTED -->
 
 Getting Started </p>
