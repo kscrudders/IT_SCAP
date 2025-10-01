@@ -79,16 +79,28 @@ Select and edit ROIs, to isolate cells.
 Export: The script can produce TIF files, and .mat files containing processed data and ROI-based extractions.
 * For step-by-step details, see the comments within the script. And/or walk through example on YouTube: [WIP]
 
+Section
+* 00 - import depenedence information about your specific microscope
+* 01 - import image data and meta data
+* 02 - process the raw data | shade, gain, alignment, bleaching
+* 03 - select ROI for individual cells
+* 04 - segmentation and instance segmentation manual edits
+* 05 - export data
+* 06 - single molecule tracking
+* 07 - data visualization (montages and videos)
+* 08 - single cell stats
+* 09 - data visualizations (plots and videos with additional overlays)
+* 'Post' - If after an intial video sequence additional snapshot data (1 timepoint, 'n' channels) is acquried, for example to quantify expression level of a reporter molecule, then these sections process, and allow you to match cells from the endpoint data with the timelapse data
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p> <!-- ROADMAP -->
 
 ## Roadmap
 
 - [x] Automated background and shade corrections
 - [x] Automated ROI detection and manual refinement
-- [ ] Additional integration with alternative cell segmentation (Cellpose)
-- [ ] Automated IRM-based deformation segmentation
-- [ ] Add Changelog as updates roll in
-
+- [x] Additional integration with alternative cell segmentation (Cellpose)
+- [x] Automated IRM-based deformation segmentation
+- [] Update 'Post' section key press handling to the improved figure keypress listener structure of the main sections
 
 See the [open issues](https://github.com/kscrudders/IT_SCAP/issues) for a full list of proposed features (and known issues).
 
