@@ -32,6 +32,7 @@ Built With Matlab and Matlab Toolboxs:
 * Statistics and Machine Learning Toolbox
 	
 External Supporting Matlab scripts:
+* SPT_Matlab - https://github.com/kscrudders/SPT_Matlab (if you want to do tracking in Matlab)
 * bfopen - https://www.openmicroscopy.org/bio-formats/downloads/
 * getkey - https://www.mathworks.com/matlabcentral/fileexchange/7465-getkey
 * createMask, rescale, rdouble - https://github.com/DanuserLab/u-track
