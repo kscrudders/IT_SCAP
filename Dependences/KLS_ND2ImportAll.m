@@ -2,7 +2,10 @@ function Image = KLS_ND2ImportAll(FileAddress)
 % Imports an ND2 file into a Matlab Matrix
 % Inputs (1): Full File Address, or file name if cd is the file's folder
 % Outputs (1): 2D or 3D stack of images as organized in the nd2 file
-
+    if isstring(FileAddress)
+        FileAddress = char(FileAddress);
+    end
+    
     bfcell = bfopen(FileAddress);
     H = size(bfcell{1,1}{1,1},1);
     W = size(bfcell{1,1}{1,1},2);
@@ -12,7 +15,7 @@ function Image = KLS_ND2ImportAll(FileAddress)
     
     Z = Z_01*(Z_01>=Z_All)+Z_All*(Z_All>Z_01); 
     
-    Image = zeros(H,W,Z);
+    
     i = 1;
     if Z_01>Z_All
         while i <= Z
