@@ -7,7 +7,7 @@ function Timing_seconds = IRCE_ND2_TimeStamps(Time_stamps_address)
     if fileID == -1
         error('foo:bar',['Address is not a valid time stamps file. Regenerate Time_stamps_address in Section 1:\n\n', ['    ' Time_stamps_address]])
     end
-    
+
     % Assuming time format in the file is like 12:34.567 (mm:ss.ms)
     % '%d' reads an integer, ':%d.%f' reads the seconds and milliseconds
     data = fscanf(fileID, '%d:%d.%d', [3, Inf]);

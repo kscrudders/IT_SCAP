@@ -1,8 +1,12 @@
 function Base_label_ROIs = IRCE_RemoveSmallCellTraces(Base_label_ROIs, Save_individual_acq_dir)
-% Last updated: 20241203 KLS
+% Updated: 20241203 KLS
 %    - Now accounts for the possibility that a ROI has no label (likely a
 %    mistake in the initial mask process. Corrections are later in the
 %    code)
+% Updated: 20250923 KLS
+%    - Added an additional fillholes to correct for importing prior
+%    correction, if the data has previously been segemented and hand
+%    corrected
 
     for i = 1:length(Base_label_ROIs)
         label_img = Base_label_ROIs{i}; % x by y by t matrix
@@ -41,9 +45,52 @@ function Base_label_ROIs = IRCE_RemoveSmallCellTraces(Base_label_ROIs, Save_indi
             end
         end
         
+        label_img = KLS_fillLabelHoles(label_img); % Fill any holes on a per slice basis
+
         % Update the cell array with the modified labeled image
         Base_label_ROIs{i} = label_img;
     end
     cd(Save_individual_acq_dir)
     save('Base_label_ROIs.mat', 'Base_label_ROIs', '-v7.3')
+end
+
+
+function filledStack = KLS_fillLabelHoles(labelStack)
+%KLS_FILLLABELHOLES Fill holes inside labeled regions in a x-y-t stack
+%
+% Input:
+%   labelStack - integer label image stack, size HxWxT
+%                0 = background, 1..n = labels
+%
+% Output:
+%   filledStack - same size, with interior holes filled for each label
+
+    %------------------- Validate inputs -------------------%
+    p = inputParser;
+    addRequired(p, 'labelStack', ...
+        @(x) isnumeric(x) && ndims(x)==3 && all(x(:) >= 0));
+    parse(p, labelStack);
+
+    [H, W, T] = size(labelStack); % input dimensions
+    filledStack = zeros(H, W, T, 'like', labelStack); % What ever data type the input was
+
+    %------------------- Process each frame -------------------%
+    for t = 1:T
+        L = labelStack(:,:,t);
+        filledFrame = zeros(H, W, 'like', L);
+
+        % Process each label individually
+        labels = setdiff(unique(L), 0); % exclude background (0)
+        for k = 1:numel(labels)
+            mask = (L == labels(k)); % current label #
+
+            % Fill interior holes
+            maskFilled = imfill(mask, 'holes');
+
+            % Write back into frame using the current label #
+            filledFrame(maskFilled) = labels(k);
+        end
+
+        filledStack(:,:,t) = filledFrame;
+    end
 end

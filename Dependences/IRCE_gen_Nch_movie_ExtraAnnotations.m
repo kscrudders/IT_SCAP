@@ -1,4 +1,4 @@
-function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
+function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps, ROI_n, ...
     Individual_ROI_data, Dilated_label_forROIs, channel_freq, channel_LUTs, ...
     channel_labels, channel_colors, roi_IRM_interface, Impulse_Tracks, Response_Tracks,...
     Impulse_track_annotation_channels, Response_track_annotation_channels, Video_Name, ...
@@ -29,16 +29,15 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
     %----------------------------------------------------------
     % Check if Ch1, Ch2 or Ch3 needs to be resized to the largest data in t
     %----------------------------------------------------------
-    largest_ch_idx = find(channel_freq == min(channel_freq));
-    maxT = size(Individual_ROI_data{largest_ch_idx(1),1},3);
+    maxT = length(channel_freq{1});
     
     resized_data = cell(size(Individual_ROI_data));
     for i = 1:Channels
-        resized_data{i,1} = KLS_resizeMatrix(Individual_ROI_data{i,1}, maxT);
+        resized_data{i,1} = KLS_resizeMatrix_from_mask(Individual_ROI_data{i,1}, channel_freq{i});
     end
     cell_mask = KLS_resizeMatrix(Dilated_label_forROIs, maxT);
     
-    Timestamps = IRCE_ND2_TimeStamps(Time_stamps_address);
+    Timestamps = Time_stamps;
 
     % Identify when the cell lands (ie when the masking starts)
     size_vector = KLS_label2ROIsize(cell_mask == ROI_n, 0.157);
@@ -64,7 +63,7 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
 
     % Generate video object
     vidObj = VideoWriter([Video_Name '.mp4'], 'MPEG-4');
-    vidObj.FrameRate = round(min(maxT / 10, 120)); % dynamically set the frame rate to have a video length of 10s maximum
+    vidObj.FrameRate = round(min(ceil(maxT / 45), 120)); % dynamically set the frame rate to have a video length of 10s maximum
     vidObj.Quality = 100;
     close(vidObj);
 
@@ -94,7 +93,7 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
     repeat_impulse_img = zeros([1 numframes]);
     for i = Impulse_track_annotation_channels
         for ii = 1:numframes
-            repeat_impulse_img(ii) = ~any(resized_data{i,1}(:,:,ii) > 0,'all');
+            repeat_impulse_img(ii) = ~any(resized_data{i,1}(:,:,ii) > 0,'all'); % if the current frame is blank, set the repeat flag to 1
         end
     end
 
@@ -302,9 +301,9 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
         % Add Impulse localizations and Tracks to indicated channels
         %----------------------------------------------------------
         if repeat_impulse_img(i) == 1
-            z = i+1;
+            z = i+1; % if the current frame is blank show the next frame
         else 
-            z = i;
+            z = i; % show the current frame's data
         end        
         if no_Impulse_tracks_flag == 0
             % Binding Localizations
@@ -322,8 +321,9 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
                         y = Impulse_Tracks(:,z,2);
 
                         % TrackMate indexs at 0,0. Matlab at 1,1;
-                        x = x+1; 
-                        y = y+1;
+                        % If using trackmate add 1
+                        x = x; 
+                        y = y;
 
                         % Which localizations are inside the cell contact
                             % area?
@@ -409,8 +409,14 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
             %}
 
             % Get boundaries from the binary image
-            if (channel_freq(Impulse_track_annotation_channels) ~= 1) && (size(Curr_Stats.mask_impulse_signal,3) < maxT)
-                zz = ceil(z/channel_freq(Impulse_track_annotation_channels));
+            if (sum(channel_freq{Impulse_track_annotation_channels}) ~= length(channel_freq{Impulse_track_annotation_channels})) && (size(Curr_Stats.mask_impulse_signal,3) < maxT)
+                % if the impulse channel is imaged less frequently than the
+                % mask channel, if the impulse channel closest to the
+                % current mask channel
+                ch_idx = find(channel_freq(Impulse_track_annotation_channels));
+                [~, idx] = min(abs(i - ch_idx));
+                zz = ch_idx(idx);
+
                 [B, ~] = bwboundaries(Curr_Stats.mask_impulse_signal(:,:,zz) > 0,'noholes');
             else
                 [B, ~] = bwboundaries(Curr_Stats.mask_impulse_signal(:,:,z) > 0,'noholes');
@@ -464,8 +470,9 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
                         y = Response_Tracks(:,i,2);
 
                         % TrackMate indexs at 0,0. Matlab at 1,1;
-                        x = x+1; 
-                        y = y+1;
+                        % If using trackmate add 1
+                        x = x; 
+                        y = y;
 
                         % Which localizations are inside the cell contact
                             % area?
@@ -554,8 +561,9 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps_address, ROI_n, ...
                             y = Response_Tracks(:,i,2);
     
                             % TrackMate indexs at 0,0. Matlab at 1,1;
-                            x = x+1; 
-                            y = y+1;
+                            % If using trackmate add 1
+                            x = x; 
+                            y = y;
     
                             % Which localizations are inside the cell contact
                                 % area?

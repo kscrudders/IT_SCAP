@@ -105,13 +105,16 @@ function Stats_ROIs = IRCE_Process_Response_data_withTracks(Base_label_ROIs, Ch3
             [B, L] = bwboundaries(curr_frame_signal_mask,'noholes');
             hold on
             valid_boundaries = zeros([1 length(B)]);
-            for k = 1:length(B)
+           for k = 1:length(B)
                boundary = B{k};
                x_outline = boundary(:,2);
                y_outline = boundary(:,1);
 
-               [in,~] = inpolygon(x,y, x_outline, y_outline);
-
+               % -- not needed. The tracked image already had the
+               % mask applied to it.
+               %[in,~] = inpolygon(x,y, x_outline, y_outline);
+               
+               in = ~isnan(tracks(:,t,1));
                track_is_in = bitand(in_this_frame, in); % in the frame, and in the mask, set good track = true
                if sum(in) > 0
                    valid_boundaries(k) = 1;

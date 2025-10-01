@@ -1,18 +1,15 @@
-function [no_output_gen_video] = IRCE_MaskVideo_IRMoverlay(Save_individual_acq_dir, Specific_ROIs, label_ROIs, filtered_IRM_data, IRM_LUT, roi_corners)
-    cd(Save_individual_acq_dir)
-    clc
+function [no_output_gen_video] = IRCE_FinalMaskVideo_IRMoverlay_Slow(Save_individual_acq_dir, Specific_ROIs, Dilated_label_ROIs, filtered_IRM_data, IRM_LUT, roi_corners)
+cd(Save_individual_acq_dir)
 
-    if isempty(Specific_ROIs)
-        Specific_ROIs = 1:size(label_ROIs,1);
-    else
-        Specific_ROIs = Specific_ROIs(~isnan(Specific_ROIs));
-    end
+if isempty(Specific_ROIs)
+    Specific_ROIs = 1:size(Dilated_label_ROIs,1);
+end
 
-    %---------------------------------------------------------%
-    % Generate Label Video to Review
-    %---------------------------------------------------------%
-    cd(Save_individual_acq_dir)
-    folderName = 'Label_Videos_PreManual_Edits'; % Generate a folder name for this data set
+%---------------------------------------------------------%
+% Generate Label Video to Review
+%---------------------------------------------------------%
+cd(Save_individual_acq_dir)
+    folderName = 'Label_Videos_PostManual_Edits'; % Generate a folder name for this data set
     if ~exist(fullfile(cd, folderName), 'dir')
         % If folder doesn't exist, create it
         mkdir(folderName);
@@ -24,32 +21,14 @@ function [no_output_gen_video] = IRCE_MaskVideo_IRMoverlay(Save_individual_acq_d
     n = 1;
     while  n <= width(Specific_ROIs)
         i = Specific_ROIs(n);
-
-        % If the only values in the mask are
-        current_valid_labels = [0 i 999];
-        current_labels = unique(label_ROIs{i,1}(:));
-        z = length(current_labels);
-        switch z
-            case 2 % Check if the current ROI has only labels 0 and i
-                if sum(ismember(current_labels, current_valid_labels(1:2))) == 2
-                    n = i+1;
-                    continue
-                end
-            case 3 % Check if the current ROI has only labels 0, i and 999
-                if sum(ismember(current_labels, current_valid_labels)) == 3
-                    n = i+1;
-                    continue
-                end
-        end
-
         disp(['***** Current ROI = ' num2str(i,'%03.f') ' *****'])
 
-        ch1_label = label_ROIs{i,1};
+        ch1_label = Dilated_label_ROIs{i,1};
 
         x = roi_corners{i,1}(:,1);
         y = roi_corners{i,1}(:,2);
         ch1_IRM = filtered_IRM_data(min(y):max(y),min(x):max(x),:);
-
+        
         max_LUT = max(ch1_label,[],'all');
 
         if max_LUT == 0
@@ -57,16 +36,15 @@ function [no_output_gen_video] = IRCE_MaskVideo_IRMoverlay(Save_individual_acq_d
            continue;
         end
 
-        % Generate video object
-        video_name = ['Label_Video_PreManual_Edits_ROI_' num2str(i,'%03.f')];
+        video_name = ['Label_Videos_PostManual_Edits_ROI_' num2str(i,'%03.f')];
         vidObj = VideoWriter([video_name '.mp4'], 'MPEG-4');
         vidObj.FrameRate = round(min(ceil(size(ch1_label,3) / 10), 120)); % dynamically set the frame rate to have a video length of 10s maximum
-        vidObj.Quality = 100; % Optional: Adjust video quality if needed
-        
+        vidObj.Quality = 100; % Optional: Adjust video quality if needed 
+
         close(vidObj);
         open(vidObj);
 
-        numframes = size(ch1_IRM,3);
+        numframes = size(ch1_label,3);
 
         if exist('h','var')
             close(h)
@@ -127,6 +105,7 @@ function [no_output_gen_video] = IRCE_MaskVideo_IRMoverlay(Save_individual_acq_d
 
     close all
 end
+
 
 function [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols)
     % Initialize arrays to hold all x and y coordinates for red and blue boundaries

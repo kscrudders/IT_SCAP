@@ -1,4 +1,7 @@
 function Stats_ROIs = IRCE_Process_data_Impulse(Base_label_ROIs, Impulse_BaSiC_ROIs, sigma_threshold, Stats_ROIs)
+% 20250517 KLS, updated the intital histogram bin edges to using an
+% automated binning method instead of hardcoding a bin width
+
     i = 1;
     while i <= size(Base_label_ROIs,1)
         ROI_n = i;
@@ -40,10 +43,14 @@ function Stats_ROIs = IRCE_Process_data_Impulse(Base_label_ROIs, Impulse_BaSiC_R
             if ~isnan(y) & length(y) > 3
                 %guass_thres(t) = median(y);
 
-                binWidth = 0.25;
+                %binWidth = 0.25;
                 
                 % Get the data, and bin the intensities for a guassian fit
-                edges = min(y):binWidth:max(y)+binWidth; % Create bin edges
+                %edges = min(y):binWidth:max(y)+binWidth; % Create bin edges using a simple redefined binning
+
+                % The Freedman-Diaconis rule is less sensitive to outliers in the data, and might be more suitable for data with heavy-tailed distributions. It uses a bin width of 2*iqr(X(:))*numel(X)^(-1/3).
+                [~, edges] = histcounts(y, 'BinMethod', 'fd'); 
+                
                 [y, edges] = histcounts(y, edges, 'Normalization', 'pdf');
                 x = edges(1:end-1) + diff(edges)/2;
                 
@@ -63,6 +70,8 @@ function Stats_ROIs = IRCE_Process_data_Impulse(Base_label_ROIs, Impulse_BaSiC_R
                 gaussian_width = 250;
                 %xlim([600 3500])
                 opts.StartPoint = [amplitude_start peak_centroid_in_x gaussian_width];
+
+                assert(numel(xData) > 3, 'Binning has failed to product at least 3 binds. Data likely has narrow intensity range.')
 
                 [fitresult, ~] = fit( xData, yData, ft, opts );
 

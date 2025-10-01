@@ -1,4 +1,4 @@
-function IRCE_gen_Nch_montage(num_montage_frames, Time_stamps_address, ROI_n, ...
+function IRCE_gen_Nch_montage(num_montage_frames, Time_stamps, ROI_n, ...
     Individual_ROI_data, Dilated_label_forROIs, channel_freq, channel_LUTs, ...
     channel_labels, channel_colors, roi_IRM_interface, STLN_Tracks, ...
     ch_with_tracks, Montage_Name, Reorder_channels)
@@ -9,18 +9,22 @@ function IRCE_gen_Nch_montage(num_montage_frames, Time_stamps_address, ROI_n, ..
         no_tracks_flag = 0;
     end
 
-    Channels = size(Individual_ROI_data,1);
+    for i = 1:length(channel_LUTs)
+        if ischar(channel_LUTs{i,1})
+            channel_LUTs{i,1} = [min(Individual_ROI_data{i,1},[],'all') max(Individual_ROI_data{i,1},[],'all')];
+        end
+    end
 
+    Channels = size(Individual_ROI_data,1);
 
     %----------------------------------------------------------
     % Check if Ch1, Ch2 or Ch3 needs to be resized to the largest data in t
     %----------------------------------------------------------
-    largest_ch_idx = find(channel_freq == min(channel_freq));
-    maxT = size(Individual_ROI_data{largest_ch_idx(1),1},3);
+    maxT = length(channel_freq{1});
     
     resized_data = cell(size(Individual_ROI_data));
     for i = 1:Channels
-        resized_data{i,1} = KLS_resizeMatrix(Individual_ROI_data{i,1}, maxT);
+        resized_data{i,1} = KLS_resizeMatrix_from_mask(Individual_ROI_data{i,1}, channel_freq{i});
     end
     cell_mask = KLS_resizeMatrix(Dilated_label_forROIs, maxT);
 
@@ -34,7 +38,7 @@ function IRCE_gen_Nch_montage(num_montage_frames, Time_stamps_address, ROI_n, ..
     last_frame = maxT;
     min_frame_start = last_frame - num_montage_frames;    
     
-    Timestamps = IRCE_ND2_TimeStamps(Time_stamps_address);
+    Timestamps = Time_stamps;
 
     % Identify when the cell lands (ie when the masking starts)
     size_vector = KLS_label2ROIsize(cell_mask == ROI_n, 0.157);
@@ -304,8 +308,9 @@ function IRCE_gen_Nch_montage(num_montage_frames, Time_stamps_address, ROI_n, ..
                         y = STLN_Tracks(:,montage_idx(i),2);
 
                         % TrackMate indexs at 0,0. Matlab at 1,1;
-                        x = x+1; 
-                        y = y+1;
+                        % If using trackmate add 1
+                        x = x; 
+                        y = y;
 
                         % Which localizations are inside the cell contact
                             % area?

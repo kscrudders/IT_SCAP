@@ -8,6 +8,34 @@ function [Base_label_ROIs_Post] = IRCE_MaskSeperation_Post(roi_corners, Ch1_corr
     Base_label_ROIs_Post = cell([size(roi_corners,1), 1]);
     
     %---------------------------------------------------------%
+    % Adaptive threshold setting
+    %---------------------------------------------------------%
+    gMed = median(Ch1_corr_IRM,'all'); % global median intensity
+
+    BW_adaptive_thres = nan(size(Ch1_corr_IRM)); % Preallocate memory
+
+    winsz     = [129 129];       % sliding window size (should be the 1.5-2.5x the size of a cell (10 µm == 64 px)
+    h = ones(winsz)/prod(winsz);       % 129×129 averaging kernel, example [1 1 1; 1 1 1; 1 1 1;] -> [1/9 1/9 1/9]    
+    for t = 1:size(Ch1_corr_IRM,3)
+        I = Ch1_corr_IRM(:,:,t);
+
+        %––– rolling average –––
+        Iavg = imfilter(I, h, 'symmetric');  % or conv2(I, h, 'same')
+        
+        %––– build a threshold map –––
+        %  increase above IRM_thres by (Iavg − gMed), but never drop below IRM_thres
+        thrMap = IRM_thres + max( (Iavg - gMed), 0);
+        
+        %––– 4) binarize –––
+        BW_adaptive_thres(:,:,t) = I < thrMap; % cells
+        
+        % 20250514 KLS
+        % If constructive interference is self contained under cells:
+        % Hardcode threshold
+        %BW_adaptive_thres(:,:,t) = I < thrMap | I > 2700; % cells
+    end
+
+    %---------------------------------------------------------%
     % Setup the mask for separating cell ROIs that are incorrectly connected
     %---------------------------------------------------------%
     cd(Save_individual_acq_dir)
@@ -31,7 +59,9 @@ function [Base_label_ROIs_Post] = IRCE_MaskSeperation_Post(roi_corners, Ch1_corr
             img = Ch1_corr_IRM(min(y):max(y),min(x):max(x),:);
             
             % Basic Segment of that cell ROI in time
-            Base_label = img < IRM_thres;
+            %Base_label = img < IRM_thres;
+            % Adaptive filtering
+            Base_label = BW_adaptive_thres(min(y):max(y),min(x):max(x),:);
             
             %---------------------------------------------------------%
             % Clean up that basic Segmentation

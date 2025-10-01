@@ -65,5 +65,4 @@ function roi_corners = IRCE_Remove_CellROIs(Ch1_corr_IRM, Save_individual_acq_di
     exportgraphics(fig,'Manually_Selected_ROIs.png','Resolution',300)
 
     clear g n continueSettingROIs line_count fig i Add_more_ROIs_flag x y
-    sound(exp(sin(1:1500))) 
 end

@@ -1,13 +1,11 @@
-function Base_label_ROIs = IRCE_RedoMaskCellpose(Specific_ROIs, roi_corners, Ch1_corr_IRM, IRM_LUT, Save_individual_acq_dir, net)
-% IRCE_RedoMaskCellpose
+function Base_label_ROIs = IRCE_RedoMaskUnet(Specific_ROIs, roi_corners, Ch1_corr_IRM, IRM_LUT, Save_individual_acq_dir, net)
+% IRCE_RedoMaskUnet
 % Manual mask cleanup per ROI using a key-driven editor (WindowKeyPressFcn).
 % Keys: k=subtract, l=approve+next, ;=back, a=approve remaining & finish ROI
 %
 % Notes
 % Base IRCE_MaskSeperation, with the initial label image replace with a
-% Cellpose model of your choice segmentation output
-
-averageCellDiameter = 75;
+% unet segmentation output
 
     %---------------------------------------------------------%
     % Setup the mask for separating cell ROIs that are incorrectly connected
@@ -45,18 +43,9 @@ averageCellDiameter = 75;
         imgROI = Ch1_corr_IRM(rr,cc,:);
 
         %---------------------------------------------------------%
-        % Apply Cellpose
+        % Apply Unet
         %---------------------------------------------------------%
-        % Basic Segment of that cell ROI in time
-        Base_label = zeros(size(imgROI));
-
-        ii = 1;
-        while ii <= size(imgROI,3)
-            labels = segmentCells2D(cp,imgROI(:,:,ii), ImageCellDiameter=averageCellDiameter);
-            labels = LF_remove_edge_labels(labels);
-            Base_label(:,:,ii) = labels;
-            ii = ii+1;
-        end
+        Base_label = LF_apply_unet2stack(imgROI, net);
 
         %---------------------------------------------------------%
         % Clean up that basic Segmentation
@@ -328,16 +317,58 @@ function toggleTracking(fig, ax, onoff)
     end
 end
 
-function labeledImage = LF_remove_edge_labels(labeledImage)
-    % Find labels that touch the edge
-    % Get the labels at the edges of the image
-    edgeLabels = unique([labeledImage(1,:), labeledImage(end,:), labeledImage(:,1)', labeledImage(:,end)']);
+function outputStack = LF_apply_unet2stack(inputStack, net)
+    fillValue = 1; % Illumintation corrected IRM data has a bkgd value of 1
+
+    % Get dimensions
+    [x,y,t] = size(inputStack); % assume x,y,t order
     
-    % Remove background label (usually label 0, if present)
-    edgeLabels(edgeLabels == 0) = [];
-    
-    % Remove edge labels from the labeled image
-    for k = 1:length(edgeLabels)
-        labeledImage(labeledImage == edgeLabels(k)) = 0;
+
+    % Case 1: smaller than 512
+    if x <= 512 && y <= 512
+        padded = ones(512,512,t) * fillValue;
+        padded(1:x,1:y,:,:) = inputStack;
+
+        outputStack = false(size(padded));
+
+        for i = 1:t
+            pred = semanticseg(padded(:,:,i), net); 
+            outputStack(:,:,i) = pred == 'cell';
+        end
+
+        outputStack = outputStack(1:x,1:y,:,:);
+
+    % Case 2: larger than 512
+    else
+        xSplits = ceil(x/512);
+        ySplits = ceil(y/512);
+        xEdges = round(linspace(1,x+1,xSplits+1));
+        yEdges = round(linspace(1,y+1,ySplits+1));
+
+        outputStack = false(x,y,t);
+
+        for ix = 1:xSplits
+            for iy = 1:ySplits
+                xs = xEdges(ix):xEdges(ix+1)-1;
+                ys = yEdges(iy):yEdges(iy+1)-1;
+                tile = inputStack(xs,ys,:);
+
+                % pad each tile to 512×512
+                tx = numel(xs);
+                ty = numel(ys);
+                padded = ones(512,512,t) * fillValue;
+                padded(1:tx,1:ty,:) = tile;
+
+                % run UNET slice by slice
+                tMask = false(size(padded));
+                for i = 1:t
+                    pred = semanticseg(padded(:,:,i),net);
+                    tMask(:,:,i) = pred == 'cell';
+                end
+
+                % crop back
+                outputStack(xs,ys,:) = tMask(1:tx,1:ty,:);
+            end
+        end
     end
 end

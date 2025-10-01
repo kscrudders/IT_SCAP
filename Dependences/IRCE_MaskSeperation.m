@@ -15,14 +15,22 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
     % --- Added logic to log manual mask annotations such that overlaping
     %     ROIs receive the same annotations, thus saving time when the same
     %     annotations are needed for different ROIs
+    % Update 20250929 KLS
+    % --- Moved keypress actions to a listener function in the imshow
+    %     figure itself, thus removing need for getkey
     %---------------------------------------------------------------------%
     % Manually Edit Masks -- Adjust ROIs with Paint Brush Interface
     %---------------------------------------------------------------------%
-    if exist(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'file')
-        load(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'globalAnnotMask')
+    subPath = fullfile(Save_individual_acq_dir, 'globalAnnotMaskSub.mat'); % path to subtracted mask annotations
+    addPath = fullfile(Save_individual_acq_dir, 'globalAnnotMaskAdd.mat'); % path to additive mask annotations
+    
+    if exist(subPath,'file') && exist(addPath,'file')
+        load(subPath,'globalAnnotMaskSub');
+        load(addPath,'globalAnnotMaskAdd');
     else
-        globalAnnotMask = true(size(Ch1_corr_IRM));
-    end    
+        globalAnnotMaskSub = true(size(Ch1_corr_IRM));   % start fully allowed
+        globalAnnotMaskAdd = false(size(Ch1_corr_IRM));  % no additions yet
+    end
 
     %---------------------------------------------------------%
     % Adaptive threshold setting
@@ -57,8 +65,6 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
     %---------------------------------------------------------%
     % Setup the mask for separating cell ROIs that are incorrectly connected
     %---------------------------------------------------------%
-    %cd(Save_individual_acq_dir) % edited to avoid moving the directory KLS 20250602
-
     if exist(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'file') % edited to avoid moving the directory KLS 20250602
         load(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'Base_label_ROIs') % edited to avoid moving the directory KLS 20250602
     end
@@ -92,17 +98,20 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             if ~isempty(Base_label_ROIs{i})
                 continue;
             end
-            disp(['***** Current ROI = ' num2str(i,'%03.f') ' *****'])
+            fprintf('***** Current ROI = %03d *****\n', i);
             
             x = roi_corners{i,1}(:,1);
             y = roi_corners{i,1}(:,2);
-            img = Ch1_corr_IRM(min(y):max(y),min(x):max(x),:);
+
+            rr = min(y):max(y); % row range
+            cc = min(x):max(x); % column range
+            img = Ch1_corr_IRM(rr,cc,:);
             
             %---------------------------------------------------------%
             % Adaptive Threshold
             %---------------------------------------------------------%
             % Adaptive Threshold Segment of that cell ROI in time
-            Base_label = BW_adaptive_thres(min(y):max(y),min(x):max(x),:);
+            Base_label = BW_adaptive_thres(rr,cc,:);
             
 
             %---------------------------------------------------------%
@@ -138,7 +147,9 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             end
     
             Base_label = Base_label > 0;
-            Base_label = Base_label .* globalAnnotMask(min(y):max(y),min(x):max(x),:); % apply prior annotations by remove label pixel values where globalAnnotMask == 0
+            Base_label = (Base_label | globalAnnotMaskAdd(rr,cc,:)) .* globalAnnotMaskSub(rr,cc,:); % apply prior annotations
+
+
             %---------------------------------------------------------%
             % Manually Edit Masks
             %---------------------------------------------------------%
@@ -152,7 +163,6 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
             go_back_flag = 0;
             ii = 1;
             while ii <= size(Ch1_corr_IRM,3) % Loop over time frames
-                
                 % Skip the current frame if there are no ROI present
                 if isempty(find(Base_label(:,:,ii) > 0, 1))
                     if go_back_flag == 1 % move back in frames logic
@@ -178,8 +188,8 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                     [rows, cols] = size(img(:,:,ii));
                     
                     % Plot the boundaries
-                    L = Base_label(:,:,ii);
-                    L = L .* globalAnnotMask(min(y):max(y),min(x):max(x),ii); % apply prior annotations by remove label pixel values where globalAnnotMask == 0
+                    L = (Base_label(:,:,ii) | globalAnnotMaskAdd(rr,cc,ii)) .* globalAnnotMaskSub(rr,cc,ii); % apply prior annotations
+
 
                     [B,~] = bwboundaries(L > 0, 'noholes');
                     [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols);
@@ -221,11 +231,15 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                         while any(strcmp(continueDrawing, {'j', 'k'}))
                             if continueDrawing == 'k'
                                 % Subtract from the mask
+                                title(sprintf("ROI %d | Frame %d/%d | Subtract from Mask", i, ii,size(Ch1_corr_IRM,3)),'Color',[0 0 0], 'FontWeight','bold');
+
                                 roi_subtract = drawfreehand('Color', 'r','LineWidth',5,'Closed',false,'DrawingArea','auto','Multiclick',true); % Draw area to subtract
                                 mask_to_subtract = createMask(roi_subtract, ImgH);
                                 mask_to_subtract= imdilate(mask_to_subtract, SE_line_dilate);
         
-                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) & ~mask_to_subtract; % update global annotation mask
+                                globalAnnotMaskSub(rr,cc,ii) = globalAnnotMaskSub(rr,cc,ii) & ~mask_to_subtract; % update substractive annotation mask
+                                globalAnnotMaskAdd(rr,cc,ii) = globalAnnotMaskAdd(rr,cc,ii) & ~mask_to_subtract; % update additive annotation mask
+
                                 new_boundaries = new_boundaries & ~mask_to_subtract;
                                 delete(roi_subtract);
                             end
@@ -236,9 +250,7 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                             [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols);
                             LF_overlay_colored_boundaries(x_all_red, y_all_red, x_all_blue, y_all_blue)
                             
-                            % Ask the user if they want to continue drawing
-                            %continueDrawing = LF_getKey_continue();
-        
+                            % automatically decide what to do for the user
                             % If there is 1+ valid ROI, 
                             if ~isempty(x_all_blue) >= 1
                                 continueDrawing = 'l';
@@ -270,34 +282,29 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                         elseif continueDrawing == 'a'
                             % User wants to approve remaining frames
                             approve_remaining_flag = 1;
-                            %Base_label(:,:,ii) = new_boundaries; % This line
+                            %Base_label(:,:,ii) = new_boundaries; % This
+                            %linel
                             % occurs after this if stateme
                         end
                     else
                         % Get user input
-                        continueDrawing = LF_getKey();
+                        continueDrawing = 'j';
+                        frustration_counter = 0;
                         
                         SE_line_dilate = strel('disk', 3); % Structuring Element for dilation
-                        while any(strcmp(continueDrawing, {'j', 'k'}))
-                            if continueDrawing == 'j'
-                                % Add to the mask
-                                roi_add = drawfreehand('Color', 'g','LineWidth',5,'Closed',true,'DrawingArea','auto','Multiclick',false); % Draw area to add
-                                mask_to_add = createMask(roi_add, ImgH);
-                                mask_to_add= imdilate(mask_to_add, SE_line_dilate);
+                        while any(strcmp(continueDrawing, {'j'}))
+                            % Add to the mask
+                            title(sprintf("ROI %d | Frame %d/%d | Add to Mask", i, ii,size(Ch1_corr_IRM,3)),'Color',[0 0 0], 'FontWeight','bold');
 
-                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) | mask_to_add; % update global annotation mask
-                                new_boundaries = new_boundaries | mask_to_add;
-                                delete(roi_add);
-                            elseif continueDrawing == 'k'
-                                % Subtract from the mask
-                                roi_subtract = drawfreehand('Color', 'r','LineWidth',5,'Closed',false,'DrawingArea','auto','Multiclick',true); % Draw area to subtract
-                                mask_to_subtract = createMask(roi_subtract, ImgH);
-                                mask_to_subtract= imdilate(mask_to_subtract, SE_line_dilate);
-        
-                                globalAnnotMask(min(y):max(y),min(x):max(x),ii) = globalAnnotMask(min(y):max(y),min(x):max(x),ii) & ~mask_to_subtract; % update global annotation mask
-                                new_boundaries = new_boundaries & ~mask_to_subtract;
-                                delete(roi_subtract);
-                            end
+                            roi_add = drawfreehand('Color', 'g','LineWidth',5,'Closed',true,'DrawingArea','auto','Multiclick',false); % Draw area to add
+                            mask_to_add = createMask(roi_add, ImgH);
+                            mask_to_add= imdilate(mask_to_add, SE_line_dilate);
+
+                            globalAnnotMaskAdd(rr,cc,ii) = globalAnnotMaskAdd(rr,cc,ii) | mask_to_add; % update additive annotation mask
+                            globalAnnotMaskSub(rr,cc,ii) = globalAnnotMaskSub(rr,cc,ii) | globalAnnotMaskAdd(rr,cc,ii); % update subtractive annotation mask
+
+                            new_boundaries = new_boundaries | mask_to_add;
+                            delete(roi_add);
         
                             ImgH = LF_imshow(img, ii, IRM_LUT);
                             % Update the displayed mask boundaries
@@ -305,15 +312,22 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                             [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols);
                             LF_overlay_colored_boundaries(x_all_red, y_all_red, x_all_blue, y_all_blue)
                             
-                            % Ask the user if they want to continue drawing
-                            %continueDrawing = LF_getKey_continue();
         
                             % If there is 1+ valid ROI, 
                             if ~isempty(x_all_blue) >= 1
                                 continueDrawing = 'l';
+                                go_quick_flag = 1;
                                 continue
                             else
-                                continueDrawing = LF_getKey_continue();
+                                continueDrawing = 'j';
+                                frustration_counter = frustration_counter+1;
+                                % if after two attempts to add masks
+                                % there is not valid mask, go back to
+                                % subtracting from the mask
+                                if frustration_counter == 2
+                                    continueDrawing = ';';
+                                    go_quick_flag = 1;
+                                end
                             end
                         end
                         
@@ -343,48 +357,41 @@ function [Base_label_ROIs] = IRCE_MaskSeperation(roi_corners, Ch1_corr_IRM, IRM_
                 
                 ii = ii + 1;
             end
-            
+            %}
             % Update the Base_label_ROIs
             %Base_label_ROIs{i,1} = KLS_Label_previousFrameOverlap(Base_label);
             %Base_label_ROIs{i,1} = LF_remove_edge_labels(Base_label_ROIs{i,1});
-    
+        
             Base_label_ROIs{i,1} = KLS_Label_fullStackTracking(Base_label);      
     
             % Save the updated masks
             save(fullfile(Save_individual_acq_dir,'Base_label_ROIs.mat'), 'Base_label_ROIs', '-v7.3')
             % Save the global mask annotation
-            save(fullfile(Save_individual_acq_dir,'globalAnnotMask.mat'), 'globalAnnotMask', '-v7.3')
+            save(fullfile(Save_individual_acq_dir,'globalAnnotMaskSub.mat'), 'globalAnnotMaskSub', '-v7.3')
+            save(fullfile(Save_individual_acq_dir,'globalAnnotMaskAdd.mat'), 'globalAnnotMaskAdd', '-v7.3')
         end
     end
    
     clc
     close all
-end
 
-function continueDrawing = LF_getKey()
-    % Initiate the first ask for mask editing
-    disp('Add to mask (j), subtract from mask (k), approve (l), go back (;), approve remaining frames (a): ');
-    continueDrawing = getkey(1);
-    continueDrawing = lower(char(continueDrawing));
+    %======================= Local functions, shares workspace =======================
     
-    % Loop until the input is valid
-    while ~any(strcmp(continueDrawing, {'j', 'k', 'l', ';', 'a'}))
-        disp('Invalid input. Please enter ''j'', ''k'', ''l'', '';'', or ''a''.');
-        continueDrawing = getkey(1);
-        continueDrawing = lower(char(continueDrawing));
-    end
-end
-
-function continueDrawing = LF_getKey_continue()
-    disp('Add to mask (j), subtract from mask (k), approve (l), go back (;), approve remaining frames (a): ');
-    continueDrawing = getkey(1);
-    continueDrawing = lower(char(continueDrawing));
-    
-    % Loop until the input is valid
-    while ~any(strcmp(continueDrawing, {'j', 'k', 'l', ';', 'a'}))
-        disp('Invalid input. Please enter ''j'', ''k'', ''l'', '';'', or ''a''.');
-        continueDrawing = getkey(1);
-        continueDrawing = lower(char(continueDrawing));
+    function [xr,yr,xb,yb] = prepBoundaryColor(BW, rows, cols)
+        % Compute boundary polylines; red if touching edge, blue otherwise.
+        B = bwboundaries(BW,'noholes');
+        xr = []; yr = []; xb = []; yb = [];
+        for k = 1:numel(B)
+            boundary = B{k};
+            touches = any(boundary(:,1)==1 | boundary(:,1)==rows | boundary(:,2)==1 | boundary(:,2)==cols);
+            if touches
+                xr = [xr; boundary(:,2); NaN]; %#ok<AGROW>
+                yr = [yr; boundary(:,1); NaN];
+            else
+                xb = [xb; boundary(:,2); NaN];
+                yb = [yb; boundary(:,1); NaN];
+            end
+        end
     end
 end
 
@@ -400,7 +407,7 @@ function ImgH = LF_imshow(img, ii, IRM_LUT)
     magnification = (half_screen_width / image_width) * 100; % Magnification in percentage
     
     % Display the image with the calculated magnification
-    ImgH = imshow(img(:, :, ii), IRM_LUT, 'InitialMagnification', magnification, 'Border', 'tight');
+    ImgH = imshow(img(:, :, ii), IRM_LUT, 'InitialMagnification', magnification);
 end
 
 function [x_all_red, y_all_red, x_all_blue, y_all_blue] = LF_prep_boundary_color(B, rows, cols)

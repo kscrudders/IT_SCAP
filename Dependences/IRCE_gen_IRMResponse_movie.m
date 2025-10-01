@@ -1,4 +1,4 @@
-function [no_output_gen_video] = IRCE_gen_IRMResponse_movie(Dilated_label_forROIs, Ch1_corr_IRM, IRM_LUT, Ch3_Response, Response_LUT, Time_stamps_address, Video_Name, ROI_n, roi_IRM_interface,channel_labels)
+function [no_output_gen_video] = IRCE_gen_IRMResponse_movie(Dilated_label_forROIs, Ch1_corr_IRM, IRM_LUT, Ch3_Response, Response_LUT, Time_stamps, Video_Name, ROI_n, roi_IRM_interface,channel_labels)
     Data.IRM = Ch1_corr_IRM;
     Data.Lyso = Ch3_Response;
     
@@ -12,40 +12,7 @@ function [no_output_gen_video] = IRCE_gen_IRMResponse_movie(Dilated_label_forROI
     Dilated_label_forROIs = KLS_resizeMatrix(Dilated_label_forROIs, maxT);
     roi_IRM_interface = KLS_resizeAnnotationsCell(roi_IRM_interface, maxT);
     
-    
-    % Pull in the recorded timepoints
-    fileID = fopen(Time_stamps_address, 'r');
-
-    % Assuming time format in the file is like 12:34.567 (mm:ss.ms)
-    % '%d' reads an integer, ':%d.%f' reads the seconds and milliseconds
-    data = fscanf(fileID, '%d:%d.%d', [3, Inf]);
-    
-    switch floor(max(log10(data(3,:))))
-        case -Inf
-                % Convert data to total seconds
-                % data(1, :) are minutes, data(2, :) are seconds, data(3, :) are milliseconds
-                Timing_seconds = data(1, :) * 60 + data(2, :) + data(3, :) / 10;
-        case 0
-            % Convert data to total seconds
-            % data(1, :) are minutes, data(2, :) are seconds, data(3, :) are milliseconds
-            Timing_seconds = data(1, :) * 60 + data(2, :) + data(3, :) / 10;    
-        case 1
-            % Convert data to total seconds
-            % data(1, :) are minutes, data(2, :) are seconds, data(3, :) are milliseconds
-            Timing_seconds = data(1, :) * 60 + data(2, :) + data(3, :) / 100;                   
-        case 2
-            % Convert data to total seconds
-            % data(1, :) are minutes, data(2, :) are seconds, data(3, :) are milliseconds
-            Timing_seconds = data(1, :) * 60 + data(2, :) + data(3, :) / 1000;                   
-        case 3
-            % Convert data to total seconds
-            % data(1, :) are minutes, data(2, :) are seconds, data(3, :) are milliseconds
-            Timing_seconds = data(1, :) * 60 + data(2, :) + data(3, :) / 10000;                   
-    end
-    
-    % Close the file
-    fclose(fileID);
-
+    Timing_seconds = Time_stamps;
 
     ch1_data = Data.IRM;
     ch3_data = Data.Lyso;
@@ -78,7 +45,7 @@ function [no_output_gen_video] = IRCE_gen_IRMResponse_movie(Dilated_label_forROI
 
     % Generate video object
     vidObj = VideoWriter([Video_Name '.mp4'], 'MPEG-4');
-    vidObj.FrameRate = round(min(maxT / 10, 120)); % dynamically set the frame rate to have a video length of 10s maximum
+    vidObj.FrameRate = round(min(ceil(size(ch1_label,3) / 10), 120)); % dynamically set the frame rate to have a video length of 10s maximum
     vidObj.Quality = 100; % Optional: Adjust video quality if needed
 
     %vidObj.FileFormat = 'mp4';

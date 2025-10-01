@@ -47,7 +47,8 @@ function [roi_IRM_interface] = IRCE_IRMDeformationAnnotation(Save_individual_acq
                     
                 if skip_remaining_flag == 0
                     hold off
-                    imshow(img(:,:,ii),IRM_LUT)
+                    %imshow(img(:,:,ii),IRM_LUT)
+                    imshow(img(:,:,ii),[min(img,[],'all') max(img,[],'all')])
                     g = gcf;
                     g.WindowState = 'maximized';            
     
@@ -206,7 +207,9 @@ function [roi_IRM_interface] = IRCE_IRMDeformationAnnotation(Save_individual_acq
                 end
                     
                 if skip_remaining_flag == 0
-                    imshow(img(:,:,ii),IRM_LUT)
+                    %imshow(img(:,:,ii),IRM_LUT)
+                    imshow(img(:,:,ii),[min(img,[],'all') max(img,[],'all')])
+                    
                     g = gcf;
                     g.WindowState = 'maximized';            
 

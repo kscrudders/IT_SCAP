@@ -74,14 +74,15 @@ function IRCE_Plotting_mean_ResponseSignal_sorted(Stats_ROIs, fig_color, inclusi
         y_plus_error = y + y_sem;
         y_minus_error = y - y_sem;
 
-        x_error = [x, fliplr(x)];
-        AreainBetween_errors = [y_plus_error, fliplr(y_minus_error)];
+        x_error = [x(:); flip(x(:))];
+        AreainBetween_errors = [y_plus_error(:); flip(y_minus_error(:))];
     hold on    
 
         opacity_fig = 0.4;
-        edge_opacity = 0.8;
+        edge_opacity = 0.0;
         plot_color = fig_color;
-        fill(x_error([valid_idx,fliplr(valid_idx)]), AreainBetween_errors([valid_idx,fliplr(valid_idx)]),'g','FaceAlpha',opacity_fig,'FaceColor',plot_color,'EdgeAlpha',edge_opacity);
+        fill(x_error([valid_idx(:); flip(valid_idx(:))]), AreainBetween_errors([valid_idx(:); flip(valid_idx(:))]),'g','FaceAlpha',opacity_fig,'FaceColor',plot_color,'EdgeAlpha',edge_opacity);
+
         x = x(valid_idx);
         y = y(valid_idx);
 

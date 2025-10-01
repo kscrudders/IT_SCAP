@@ -3,8 +3,9 @@ function [Raw_data, base_save_dir, Raw_dir, Processed_dir, ROIs_dir] = IRCE_Impo
 %    - Check for import file existance and allow ND2 or tif format,
 %       preference ND2
 % 20240821 KLS
-%     - Allow either idx in current folder or file name
-%
+%   - Allow either idx in current folder or file name
+% 20250516 KLS
+%   - Also generate the stats folder
 
     base_save_dir = [save_data_in_this_folder '\' name_of_data];
     %---------------------------------------------------------%
@@ -73,4 +74,14 @@ function [Raw_data, base_save_dir, Raw_dir, Processed_dir, ROIs_dir] = IRCE_Impo
         mkdir(folder_path);
     end
     ROIs_dir = folder_path;
+
+    %---------------------------------------------------------%
+    % Save the Stats
+    %---------------------------------------------------------%
+    folderName = 'Stats';
+    folder_path = fullfile(base_save_dir, folderName);
+    if ~exist(folder_path,'dir')
+        % If folder doesn't exist, create it
+        mkdir(folder_path);
+    end
 end

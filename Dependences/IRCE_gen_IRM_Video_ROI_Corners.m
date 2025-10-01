@@ -74,7 +74,7 @@ function IRCE_gen_IRM_Video_ROI_Corners(Ch1_corr_IRM, Save_individual_acq_dir, I
 
         video_name = ['Review_ROICorners_' num2str(i,'%03.f')];
         vidObj = VideoWriter([video_name '.mp4'], 'MPEG-4');
-        vidObj.FrameRate = round(min(size(ch1_label,3) / 10, 120)); % dynamically set the frame rate to have a video length of 10s maximum
+        vidObj.FrameRate = round(min(ceil(size(ch1_label,3) / 10), 120)); % dynamically set the frame rate to have a video length of 10s maximum
         vidObj.Quality = 100; % Optional: Adjust video quality if needed 
 
         close (vidObj);
