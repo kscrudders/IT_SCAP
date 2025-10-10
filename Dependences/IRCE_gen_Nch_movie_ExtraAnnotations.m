@@ -2,7 +2,7 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps, ROI_n, ...
     Individual_ROI_data, Dilated_label_forROIs, channel_freq, channel_LUTs, ...
     channel_labels, channel_colors, roi_IRM_interface, Impulse_Tracks, Response_Tracks,...
     Impulse_track_annotation_channels, Response_track_annotation_channels, Video_Name, ...
-    Reorder_channels, Curr_Stats, Impulse_integrated_flag, Response_integrated_flag)
+    Reorder_channels, Curr_Stats, Impulse_integrated_flag, Response_integrated_flag, Contact_Channel)
     
     if isempty(Impulse_Tracks)
         no_Impulse_tracks_flag = 1; % There are no impulse tracks
@@ -35,7 +35,8 @@ function IRCE_gen_Nch_movie_ExtraAnnotations(Time_stamps, ROI_n, ...
     for i = 1:Channels
         resized_data{i,1} = KLS_resizeMatrix_from_mask(Individual_ROI_data{i,1}, channel_freq{i});
     end
-    cell_mask = KLS_resizeMatrix(Dilated_label_forROIs, maxT);
+
+    cell_mask = KLS_resizeMatrix_from_mask(Dilated_label_forROIs, channel_freq{Contact_Channel});
     
     Timestamps = Time_stamps;
 
